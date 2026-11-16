@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payment Orchestrator — Plan Visualized</title>
+<style>
+:root{--bg:#0b1220;--pan:#111a2e;--pan2:#0e1728;--line:#22314e;--txt:#e2e8f0;--dim:#8aa0c4;--mut:#64748b;--blue:#60a5fa;--green:#34d399;--amber:#fbbf24;--red:#f87171;--violet:#a78bfa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
+h1{font-size:26px;margin:0 0 8px}
+h2{font-size:20px;margin:4px 0 14px}
+h3{font-size:12.5px;margin:0 0 8px;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+.sub{color:var(--mut);font-size:13px;margin:0 0 10px}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 22px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:5;border-bottom:1px solid var(--line)}
+.tabbtn{padding:8px 15px;border-radius:11px;border:1px solid var(--line);background:var(--pan2);color:var(--dim);cursor:pointer;font-size:13.5px;font-weight:600}
+.tabbtn.on{background:rgba(37,99,235,.18);border-color:rgba(96,165,250,.55);color:#bfdbfe}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--pan);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card b{display:block;font-size:14.5px;margin-bottom:3px}
+.card p{margin:0;color:var(--dim);font-size:13px}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.g5{grid-template-columns:repeat(auto-fit,minmax(185px,1fr))}
+.mb{margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chip{display:inline-block;padding:3px 11px;border-radius:999px;font-size:12.5px;border:1px solid var(--line);background:var(--pan2);color:var(--dim)}
+.chip.g{color:var(--green);border-color:rgba(52,211,153,.45)}
+.chip.b{color:var(--blue);border-color:rgba(96,165,250,.45)}
+.chip.a{color:var(--amber);border-color:rgba(251,191,36,.45)}
+.chip.r{color:var(--red);border-color:rgba(248,113,113,.45)}
+.chip.v{color:var(--violet);border-color:rgba(167,139,250,.45)}
+.flow{display:flex;flex-direction:column}
+.fbox{border:1px solid var(--line);background:var(--pan);border-radius:14px;padding:12px 16px;text-align:center}
+.fbox b{display:block;font-size:15px;margin-bottom:2px}
+.fbox span{color:var(--dim);font-size:12.5px}
+.arr{text-align:center;color:var(--blue);font-size:19px;line-height:1.3;padding:3px 0}
+.arr small{display:block;color:var(--mut);font-size:11.5px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@media(max-width:760px){.duo{grid-template-columns:1fr}}
+.note{color:var(--mut);font-size:12.5px;margin-top:8px}
+.steps{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.step{display:flex;gap:12px;align-items:flex-start;background:var(--pan);border:1px solid var(--line);border-radius:14px;padding:14px}
+.num{flex:0 0 34px;height:34px;border-radius:10px;background:#1e3a8a;color:#bfdbfe;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+.step b{display:block;font-size:14.5px;margin-bottom:3px}
+.step p{margin:0;color:var(--dim);font-size:13px}
+.actor{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);display:block;margin-bottom:3px;font-weight:700}
+ol.tight{margin:6px 0 0;padding-left:20px;color:var(--dim);font-size:13.5px}
+ol.tight li{margin:4px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+.dg{background:var(--green)}.db{background:var(--blue)}.dv{background:var(--violet)}.da{background:var(--amber)}
+pre{background:var(--pan2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:12.5px;overflow:auto;color:#c9d8f0;margin:8px 0 0}
+svg{width:100%;height:auto;display:block}
+svg text{font-family:inherit}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:12.5px}
+footer{margin-top:26px;color:var(--mut);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+<h1>Payment Orchestrator — the plan, visualized</h1>
+<div class="chips">
+<span class="chip">Node 22 + TS</span><span class="chip b">MySQL 8 = source of truth</span><span class="chip v">Redis 7 = coordination only</span><span class="chip">Fastify</span><span class="chip">knex</span><span class="chip">ioredis</span><span class="chip">zod</span><span class="chip">pino</span>
+</div>
+<div class="chips">
+<span class="chip b">event-driven modular monolith</span><span class="chip b">2 roles: api + worker</span><span class="chip g">at-least-once + idempotent handlers</span><span class="chip a">integer paise only</span>
+</div>
+<p class="sub">Companion to PLAN.md — v2: reviewed by 4 independent agents, all findings folded in. Click the tabs.</p>
+</header>
+
+<nav>
+<button class="tabbtn on" data-t="overview">Overview</button>
+<button class="tabbtn" data-t="payin">Pay-in</button>
+<button class="tabbtn" data-t="payout">Payout</button>
+<button class="tabbtn" data-t="states">States</button>
+<button class="tabbtn" data-t="events">Events</button>
+<button class="tabbtn" data-t="bank">Bank rules</button>
+<button class="tabbtn" data-t="build">Build</button>
+<button class="tabbtn" data-t="reviews">Reviews</button>
+</nav>
+
+<!-- ============ OVERVIEW ============ -->
+<section class="tab on" id="t-overview">
+<h2>One screen: how the whole system fits</h2>
+<div class="flow mb">
+  <div class="fbox"><b>Callers</b><span>tenants (API key + HMAC) · admins (RBAC)</span></div>
+  <div class="arr">↓<small>HTTPS — every mutation carries an idempotency key</small></div>
+  <div class="fbox"><b>api role — Fastify, stateless, scale ×N</b><span>create pay-in orders · take UTR claims · take payout requests</span></div>
+  <div class="arr">↓<small>state change + event row, committed in ONE MySQL transaction</small></div>
+  <div class="duo">
+    <div class="fbox" style="border-color:rgba(96,165,250,.55)"><b>MySQL 8 — the source of truth</b><span>orders · payouts · double-entry ledger · balances · limits · outbox · reviews · audit</span></div>
+    <div class="fbox"><b>Redis 7 — coordination only</b><span>locks · rate limits · event streams · cache</span><div class="note">flush Redis → nothing is lost; it re-derives from MySQL</div></div>
+  </div>
+  <div class="arr">↓<small>outbox relay — events leave the DB only after commit</small></div>
+  <div class="fbox"><b>worker role, scale ×N</b><span>4 loops: outbox relay · bank sync · payout executor · master sweeper (deadlines · re-match · webhook retries · janitor · nightly verify)</span></div>
+  <div class="arr">↓<small>one bank operation at a time: lock + rate limit + gate</small></div>
+  <div class="fbox"><b>bank connectors</b><span>mock (for tests) · one adapter per provider</span></div>
+  <div class="arr">↓</div>
+  <div class="fbox"><b>bank / aggregator APIs</b><span>statements · balances · payout rails</span></div>
+</div>
+
+<div class="grid g5 mb">
+  <div class="card"><h3>Rule 1</h3><b>One txn = change + event</b><p>Outbox row commits with the state change. A crash can lose neither.</p></div>
+  <div class="card"><h3>Rule 2</h3><b>MySQL is the only truth</b><p>Balances, limits, states never live in Redis.</p></div>
+  <div class="card"><h3>Rule 3</h3><b>Proof before success</b><p>Pay-ins confirm only on bank evidence; the rest goes to humans.</p></div>
+  <div class="card"><h3>Rule 4</h3><b>Gate, hold, submit once</b><p>Gate before hold; idempotency key; never blind-retry; every non-terminal row has a deadline.</p></div>
+  <div class="card"><h3>Rule 5</h3><b>Replays are no-ops</b><p>State guards + unique keys make at-least-once delivery safe.</p></div>
+</div>
+<div class="chips">
+<span class="chip">money = integer paise</span><span class="chip">windows in IST (configurable)</span><span class="chip">order TTL 30 min</span><span class="chip">claim window 48 h</span><span class="chip">all timings configurable</span>
+</div>
+</section>
+
+<!-- ============ PAY-IN ============ -->
+<section class="tab" id="t-payin">
+<h2>Pay-in: request → bank details → UTR → credit</h2>
+<div class="steps mb">
+  <div class="step"><span class="num">1</span><div><span class="actor">tenant</span><b>Create the order</b><p>POST /v1/pay-in-orders {amount, client_order_id} — idempotent per tenant.</p></div></div>
+  <div class="step"><span class="num">2</span><div><span class="actor">selection engine</span><b>Pick an account</b><p>Live capacity vs day/week/month count + amount limits. Nothing fits → 422 NO_CAPACITY. No silent fallback.</p></div></div>
+  <div class="step"><span class="num">3</span><div><span class="actor">end customer</span><b>Show details, get paid</b><p>Account number · IFSC · holder · "expires in 30 min". Customer pays in their bank app → UTR in hand.</p></div></div>
+  <div class="step"><span class="num">4</span><div><span class="actor">tenant</span><b>Claim the UTR</b><p>POST /v1/pay-in-orders/:id/claim {utr}.</p></div></div>
+  <div class="step"><span class="num">5</span><div><span class="actor">matcher</span><b>Check synced txns NOW</b><p><span class="chip g">found + amount ok → succeeded</span> <span class="chip a">amount ≠ → mismatch_review</span> <span class="chip">not found → claimed, deadline +48 h</span></p></div></div>
+  <div class="step"><span class="num">6</span><div><span class="actor">bank sync</span><b>Credit lands later</b><p>Ingest fast-path matches the UTR → succeeded → ledger credit + webhook.</p></div></div>
+  <div class="step"><span class="num">7</span><div><span class="actor">sweeper</span><b>Deadline, no proof</b><p>no_txn_found → review queue. Never auto-fail. A very late credit becomes unknown_credit review.</p></div></div>
+</div>
+<div class="grid g2">
+  <div class="card"><h3>Why delayed sync cannot hurt you</h3><ol class="tight">
+    <li>Claim side — search already-ingested transactions at claim time.</li>
+    <li>Ingest side — every new credit searches open claims by UTR.</li>
+    <li>Backstop — a 1-minute sweeper escalates anything past deadline to review.</li>
+  </ol></div>
+  <div class="card"><h3>A match must corroborate</h3><ol class="tight">
+    <li>direction = credit</li>
+    <li>account = exactly the account we displayed</li>
+    <li>amount exactly equal — anything else is mismatch_review</li>
+    <li>UTR single-use per account — a second claimant goes to review</li>
+  </ol></div>
+</div>
+</section>
+
+<!-- ============ PAYOUT ============ -->
+<section class="tab" id="t-payout">
+<h2>Payout: admin asks, system picks, money moves once</h2>
+<div class="steps mb">
+  <div class="step"><span class="num">1</span><div><span class="actor">admin</span><b>Request</b><p>POST /v1/payouts {amount, beneficiary, idempotency_key} → created. Duplicate key = same answer, never a second payment.</p></div></div>
+  <div class="step"><span class="num">2</span><div><span class="actor">executor</span><b>Pick an account</b><p>tenant AND account balance ≥ amount · window limits. None → rejected with per-account reasons recorded.</p></div></div>
+  <div class="step"><span class="num">3</span><div><span class="actor">ledger</span><b>Gate, then hold</b><p>Acquire the bank gate → one txn: FOR UPDATE aggregates → re-verify limits → hold group → held (available −X, held +X). Funds never pinned behind a statement run.</p></div></div>
+  <div class="step"><span class="num">4</span><div><span class="actor">connector</span><b>Submit under gate</b><p>ok → in_flight · bank rejects → failed (hold back) · timeout → unknown (reconciler owns it).</p></div></div>
+  <div class="step"><span class="num">5</span><div><span class="actor">reconciler</span><b>Settle or escalate</b><p>settled with evidence · failed with evidence (hold back) · no evidence by max age → payout_ambiguous review, hold kept + webhook.</p></div></div>
+</div>
+<div class="grid g3">
+  <div class="card"><h3>What if no account qualifies</h3><p>rejected — reasons per account: NO_BALANCE · NO_LIMITS · GATE_BUSY. Admin sees exactly why.</p></div>
+  <div class="card"><h3>What if a statement is running</h3><p>Payout waits with backoff until the gate frees. Statements win. The gate is one MySQL row (bank_gates) — no Redis lease to disagree.</p></div>
+  <div class="card"><h3>What if submission timed out</h3><p>unknown → status check / statement search by idempotency key. failed only on positive evidence of non-execution; else payout_ambiguous review keeps the hold.</p></div>
+</div>
+</section>
+
+<!-- ============ STATES ============ -->
+<section class="tab" id="t-states">
+<h2>State machines — illegal transitions are no-ops</h2>
+<div class="card mb">
+<h3>Pay-in order</h3>
+<svg viewBox="0 0 880 260" role="img" aria-label="Pay-in state machine">
+<defs><marker id="ah1" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#7f97bd"/></marker></defs>
+<rect x="20" y="40" width="160" height="46" rx="10" fill="#16223a" stroke="#3b4f6e"/>
+<text x="100" y="59" text-anchor="middle" font-size="13.5" font-weight="600" fill="#e2e8f0">pending</text>
+<text x="100" y="75" text-anchor="middle" font-size="11" fill="#7c8db0">awaiting payment</text>
+<rect x="360" y="40" width="160" height="46" rx="10" fill="#16223a" stroke="#60a5fa"/>
+<text x="440" y="59" text-anchor="middle" font-size="13.5" font-weight="600" fill="#93c5fd">claimed</text>
+<text x="440" y="75" text-anchor="middle" font-size="11" fill="#7c8db0">has UTR, awaiting proof</text>
+<rect x="700" y="40" width="160" height="46" rx="10" fill="#0f2a22" stroke="#34d399"/>
+<text x="780" y="59" text-anchor="middle" font-size="13.5" font-weight="600" fill="#34d399">succeeded</text>
+<text x="780" y="75" text-anchor="middle" font-size="11" fill="#7c8db0">credited · webhook</text>
+<rect x="20" y="200" width="160" height="46" rx="10" fill="#141c2e" stroke="#475569"/>
+<text x="100" y="219" text-anchor="middle" font-size="13.5" font-weight="600" fill="#94a3b8">expired</text>
+<text x="100" y="235" text-anchor="middle" font-size="11" fill="#64748b">TTL passed</text>
+<rect x="360" y="200" width="160" height="46" rx="10" fill="#2a2113" stroke="#fbbf24"/>
+<text x="440" y="219" text-anchor="middle" font-size="13.5" font-weight="600" fill="#fbbf24">mismatch_review</text>
+<text x="440" y="235" text-anchor="middle" font-size="11" fill="#a9803a">a human resolves</text>
+<line x1="180" y1="63" x2="356" y2="63" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah1)"/>
+<text x="268" y="52" text-anchor="middle" font-size="12" fill="#a7b8d6">claim (UTR)</text>
+<line x1="520" y1="63" x2="696" y2="63" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah1)"/>
+<text x="608" y="52" text-anchor="middle" font-size="12" fill="#a7b8d6">txn matches</text>
+<text x="608" y="79" text-anchor="middle" font-size="10.5" fill="#64748b">UTR · amount · account</text>
+<line x1="100" y1="86" x2="100" y2="196" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah1)"/>
+<text x="112" y="145" font-size="11.5" fill="#a7b8d6">expires_at (TTL)</text>
+<line x1="440" y1="86" x2="440" y2="196" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah1)"/>
+<text x="452" y="140" font-size="11.5" fill="#a7b8d6">amount ≠ · UTR reused · deadline</text>
+<line x1="780" y1="86" x2="780" y2="196" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah1)"/>
+<text x="792" y="140" font-size="11.5" fill="#a7b8d6">bank reversal</text>
+<rect x="700" y="200" width="160" height="46" rx="10" fill="#2a1414" stroke="#f87171"/>
+<text x="780" y="219" text-anchor="middle" font-size="13.5" font-weight="600" fill="#f87171">reversed</text>
+<text x="780" y="235" text-anchor="middle" font-size="11" fill="#7c8db0">storno + overdraw alert</text>
+</svg>
+</div>
+<div class="card mb">
+<h3>Payout</h3>
+<svg viewBox="0 0 940 360" role="img" aria-label="Payout state machine">
+<defs><marker id="ah2" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#7f97bd"/></marker></defs>
+<rect x="20" y="40" width="150" height="46" rx="10" fill="#16223a" stroke="#3b4f6e"/>
+<text x="95" y="59" text-anchor="middle" font-size="13.5" font-weight="600" fill="#e2e8f0">created</text>
+<text x="95" y="75" text-anchor="middle" font-size="11" fill="#7c8db0">request in</text>
+<rect x="270" y="40" width="150" height="46" rx="10" fill="#16223a" stroke="#60a5fa"/>
+<text x="345" y="59" text-anchor="middle" font-size="13.5" font-weight="600" fill="#93c5fd">held</text>
+<text x="345" y="75" text-anchor="middle" font-size="11" fill="#7c8db0">gate held · money reserved</text>
+<rect x="520" y="40" width="150" height="46" rx="10" fill="#16223a" stroke="#60a5fa"/>
+<text x="595" y="59" text-anchor="middle" font-size="13.5" font-weight="600" fill="#93c5fd">in_flight</text>
+<text x="595" y="75" text-anchor="middle" font-size="11" fill="#7c8db0">submitted to bank</text>
+<rect x="770" y="40" width="150" height="46" rx="10" fill="#0f2a22" stroke="#34d399"/>
+<text x="845" y="59" text-anchor="middle" font-size="13.5" font-weight="600" fill="#34d399">settled</text>
+<text x="845" y="75" text-anchor="middle" font-size="11" fill="#7c8db0">hold consumed</text>
+<rect x="20" y="170" width="150" height="46" rx="10" fill="#141c2e" stroke="#475569"/>
+<text x="95" y="189" text-anchor="middle" font-size="13.5" font-weight="600" fill="#94a3b8">rejected</text>
+<text x="95" y="205" text-anchor="middle" font-size="11" fill="#64748b">no eligible account</text>
+<rect x="520" y="170" width="150" height="46" rx="10" fill="#2a2113" stroke="#fbbf24"/>
+<text x="595" y="189" text-anchor="middle" font-size="13.5" font-weight="600" fill="#fbbf24">unknown</text>
+<text x="595" y="205" text-anchor="middle" font-size="11" fill="#a9803a">awaiting bank evidence</text>
+<rect x="520" y="300" width="150" height="46" rx="10" fill="#2a1414" stroke="#f87171"/>
+<text x="595" y="319" text-anchor="middle" font-size="13.5" font-weight="600" fill="#f87171">failed</text>
+<text x="595" y="335" text-anchor="middle" font-size="11" fill="#7c8db0">hold released</text>
+<line x1="170" y1="63" x2="266" y2="63" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah2)"/>
+<text x="218" y="52" text-anchor="middle" font-size="12" fill="#a7b8d6">select + gate</text>
+<line x1="420" y1="63" x2="516" y2="63" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah2)"/>
+<text x="468" y="52" text-anchor="middle" font-size="12" fill="#a7b8d6">submitted</text>
+<line x1="670" y1="63" x2="766" y2="63" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah2)"/>
+<text x="718" y="52" text-anchor="middle" font-size="12" fill="#a7b8d6">bank confirms</text>
+<line x1="95" y1="86" x2="95" y2="166" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah2)"/>
+<text x="107" y="130" font-size="11.5" fill="#a7b8d6">no eligible account</text>
+<line x1="595" y1="86" x2="595" y2="166" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah2)"/>
+<text x="607" y="130" font-size="11.5" fill="#a7b8d6">timeout · ambiguous</text>
+<polyline points="670,193 845,193 845,92" fill="none" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah2)"/>
+<text x="757" y="182" text-anchor="middle" font-size="11.5" fill="#a7b8d6">evidence: paid</text>
+<line x1="595" y1="216" x2="595" y2="296" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah2)"/>
+<text x="583" y="258" text-anchor="end" font-size="11.5" fill="#a7b8d6">evidence: not executed</text>
+<polyline points="345,86 345,323 516,323" fill="none" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah2)"/>
+<text x="357" y="120" font-size="11.5" fill="#a7b8d6">bank rejects</text>
+</svg>
+<div class="note">unknown past max reconcile age without evidence → payout_ambiguous review, hold kept. cancelled (admin, while created/held — hold released) off the map.</div>
+</div>
+<div class="legend mb">
+<span class="chip g">green = confirmed by bank</span><span class="chip a">amber = human review</span><span class="chip b">blue = active, money waiting</span><span class="chip">gray = terminal, no money moved</span><span class="chip r">red = failed, hold released</span>
+</div>
+<div class="card"><b>Guards everywhere</b><p>API, event handlers and workers all reject illegal transitions. A replayed event becomes a no-op — that is what makes at-least-once delivery safe.</p></div>
+</section>
+
+<!-- ============ EVENTS ============ -->
+<section class="tab" id="t-events">
+<h2>Events: how a change ripples — nobody calls anybody</h2>
+<div class="flow mb">
+  <div class="fbox"><b>1 · state change + outbox row</b><span>one MySQL transaction</span></div>
+  <div class="arr">↓</div>
+  <div class="fbox"><b>2 · outbox (unpublished rows)</b><span>survives any crash</span></div>
+  <div class="arr">↓</div>
+  <div class="fbox"><b>3 · relay publishes</b><span>XADD, batches, marks published_at</span></div>
+  <div class="arr">↓</div>
+  <div class="fbox"><b>4 · Redis Streams</b><span>ONE events stream + ev.dlq · consumer groups</span></div>
+  <div class="arr">↓</div>
+  <div class="fbox"><b>5 · handler</b><span>guard → effect → XACK — guards are the dedupe, no processed_events</span></div>
+</div>
+<div class="chips mb">
+<span class="chip g">at-least-once</span><span class="chip g">idempotent handlers</span><span class="chip v">XAUTOCLAIM reclaims stuck entries</span><span class="chip r">5 failed attempts → ev.dlq + alert</span><span class="chip g">admin replay command</span><span class="chip">schema_versioned payloads</span>
+</div>
+<div class="card mb">
+<h3>Event catalog</h3>
+<table>
+<tr><th></th><th>Event</th><th>Produced by</th><th>Consumed by</th></tr>
+<tr><td><span class="dot dg"></span></td><td>payin.order_created · succeeded · mismatch_review_created · expired · reversed</td><td>api · matcher · sweeper</td><td>webhook dispatcher</td></tr>
+<tr><td><span class="dot db"></span></td><td>payout.created</td><td>admin api</td><td>payout executor</td></tr>
+<tr><td><span class="dot db"></span></td><td>payout.submitted · settled · failed · unknown</td><td>executor · reconciler</td><td>webhook dispatcher</td></tr>
+</table>
+</div>
+<div class="card"><b>Matching is inline, not evented</b><p>At claim time and inside the sync commit — one shared matcher module, corroborating UTR + amount + account. A 1-minute re-match sweep backstops both sides. Events carry webhooks and payout.created only.</p></div>
+<div class="card"><b>Webhooks out are events too</b><p>HMAC-SHA256 signed · exponential backoff retries · timestamp replay window · per-tenant endpoint config.</p></div>
+</section>
+
+<!-- ============ BANK RULES ============ -->
+<section class="tab" id="t-bank">
+<h2>Bank access: serialized, rate-limited, boring</h2>
+<div class="card mb">
+<h3>The gate — statement and payout never overlap</h3>
+<svg viewBox="0 0 940 215" role="img" aria-label="Bank operation gate">
+<defs><marker id="ah3" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#7f97bd"/></marker></defs>
+<rect x="20" y="82" width="170" height="50" rx="10" fill="#16223a" stroke="#3b4f6e"/>
+<text x="105" y="103" text-anchor="middle" font-size="13.5" font-weight="600" fill="#e2e8f0">bank account</text>
+<text x="105" y="119" text-anchor="middle" font-size="11" fill="#7c8db0">one op at a time</text>
+<rect x="360" y="75" width="180" height="64" rx="10" fill="#2a2113" stroke="#fbbf24"/>
+<text x="450" y="97" text-anchor="middle" font-size="13.5" font-weight="700" fill="#fbbf24">🔒 GATE</text>
+<text x="450" y="114" text-anchor="middle" font-size="11" fill="#d9b06b">MySQL row · single authority</text>
+<text x="450" y="130" text-anchor="middle" font-size="11" fill="#7c8db0">compare-and-set · expiry · fencing</text>
+<rect x="650" y="20" width="230" height="50" rx="10" fill="#16223a" stroke="#60a5fa"/>
+<text x="765" y="41" text-anchor="middle" font-size="13" font-weight="600" fill="#93c5fd">check-in · statement fetch</text>
+<text x="765" y="57" text-anchor="middle" font-size="11" fill="#7c8db0">holds the gate for the whole fetch</text>
+<rect x="650" y="145" width="230" height="50" rx="10" fill="#0f2a22" stroke="#34d399"/>
+<text x="765" y="166" text-anchor="middle" font-size="13" font-weight="600" fill="#34d399">payout submission</text>
+<text x="765" y="182" text-anchor="middle" font-size="11" fill="#7c8db0">waits with backoff if gate is busy</text>
+<polyline points="650,45 450,45 450,71" fill="none" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah3)"/>
+<polyline points="650,170 450,170 450,143" fill="none" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah3)"/>
+<line x1="360" y1="107" x2="194" y2="107" stroke="#7f97bd" stroke-width="1.6" marker-end="url(#ah3)"/>
+<text x="277" y="96" text-anchor="middle" font-size="11.5" fill="#a7b8d6">serialized access</text>
+</svg>
+<div class="note">Statements win. When in doubt, the payout defers. One MySQL row (bank_gates) is the authority — expired gate = free; a Redis flush changes nothing.</div>
+</div>
+<div class="grid g2">
+  <div class="card"><h3>Sync lock</h3><b>one sync per connection</b><p>Crash → TTL expires → another replica takes over. Watermark + UNIQUE (account, bank_txn_id) = no double ingest. Per-tick page/time budget keeps one slow account from stretching the gate.</p></div>
+  <div class="card"><h3>Rate limiter</h3><b>token bucket per connection + op</b><p>Atomic Lua in Redis, configured per provider. Callers back off — they never hammer the bank.</p></div>
+  <div class="card"><h3>Writes never blind-retry</h3><b>reads: backoff + jitter</b><p>Payout submissions carry an idempotency key. Timeout → unknown → the reconciler owns the answer.</p></div>
+  <div class="card"><h3>Balance drift</h3><b>every Nth sync tick</b><p>fetchBalance → snapshot → compare vs the bank_mirror ledger aggregate. Drift beyond tolerance alerts ops — catches what the watermark overlap cannot.</p></div>
+  <div class="card"><h3>Connector contract</h3><b>4 methods, one per provider</b><pre>interface BankConnector {
+  fetchTransactions(account, from, to): Promise&lt;BankTxnPage&gt;
+  fetchBalance(account): Promise&lt;Balance&gt;
+  initiatePayout(account, req): Promise&lt;PayoutSubmission&gt;  // idempotent
+  getPayoutStatus(account, bankRef): Promise&lt;PayoutStatus&gt;  // optional
+}</pre><p style="margin-top:8px">The mock connector scripts the bad days: delayed txn, wrong amount, UTR reuse, timeout.</p></div>
+</div>
+</section>
+
+<!-- ============ BUILD ============ -->
+<section class="tab" id="t-build">
+<h2>Build order — every milestone runs</h2>
+<div class="grid g3 mb">
+  <div class="card"><h3>M1 · Foundation</h3><b>schema, outbox, gate, streams</b><p>Done when: event round-trip survives crash-replay + Redis-flush tests; every ledger group sums to zero.</p></div>
+  <div class="card"><h3>M2 · Tenancy</h3><b>tenants, connections, accounts</b><p>Done when: admin can model a tenant with 2 accounts + limits. RBAC + audit live.</p></div>
+  <div class="card"><h3>M3 · Pay-in</h3><b>selection → claim → match → credit</b><p>Done when: all mock scenarios pass — delayed sync, amount mismatch, UTR reuse, late claim, reversal.</p></div>
+  <div class="card"><h3>M4 · Payout</h3><b>gate-first holds, saga sweeper</b><p>Done when: kill-worker mid-hold and mid-payout tests show no double-pay, no lost hold, no wedge &gt; 1 min.</p></div>
+  <div class="card"><h3>M5 · Real bank</h3><b>first provider connector</b><p>Done when: sandbox sync + payout works end to end; review-queue ops flow usable.</p></div>
+  <div class="card"><h3>M6 · Hardening</h3><b>DLQ replay, metrics + thresholds, runbooks</b><p>Done when: alert thresholds live with owners; lag SLOs green 7 days; runbook drill done.</p></div>
+</div>
+<div class="card" style="border-color:rgba(251,191,36,.5)">
+<h3>Decisions I need from you (PLAN.md §17 has the full list)</h3>
+<ol class="tight">
+  <li>Funding: per-account float vs pooled — v2 requires BOTH checks. Confirm?</li>
+  <li>Who resolves reviews and moves money — ops, finance, or both?</li>
+  <li>Reversals: auto-storno (v2) or review-first? Wrong-account money: credit or return?</li>
+  <li>"Check-in" = bank reads — and direct bank APIs or an aggregator?</li>
+  <li>Shared accounts matched by UTR vs virtual accounts · volume ballpark?</li>
+</ol>
+</div>
+</section>
+
+<!-- ============ REVIEWS ============ -->
+<section class="tab" id="t-reviews">
+<h2>Review pass — 4 independent reviewers, all folded into v2</h2>
+<div class="chips">
+<span class="chip a">money-safety: fixable</span><span class="chip a">simplicity/ops: fixable</span><span class="chip a">requirements-fit: fixable</span><span class="chip a">data-model: fixable</span>
+</div>
+<div class="grid g2 mb">
+<div class="card"><h3>Money &amp; concurrency</h3><b>verdict: fixable — skeleton right</b>
+<ol class="tight">
+<li>ledger groups didn't balance → signs fixed + sum-to-zero invariant test</li>
+<li>payout saga could wedge → sweep ALL non-terminal states by deadline</li>
+<li>guards were prose → conditional UPDATEs + UNIQUE(matched_bank_txn_id) + FOR UPDATE on the bank txn</li>
+<li>no pay-in reversal path → storno group + reversed state</li>
+<li>duplicate live-UTR claims → UNIQUE(account, active_utr) → utr_reuse review</li>
+</ol></div>
+<div class="card"><h3>Simplicity &amp; ops</h3><b>verdict: fixable — "boring in the best way"</b>
+<ol class="tight">
+<li>stuck-held payouts → bank query by idempotency key; gate BEFORE hold</li>
+<li>gate had no DB-half spec → bank_gates row, single authority</li>
+<li>retry/DLQ undefined → 5 attempts → DLQ + alert + admin replay</li>
+<li>7 worker loops → 4 (master sweeper owns deadlines, retries, janitor)</li>
+<li>one events stream; processed_events dropped; matching inline</li>
+</ol></div>
+<div class="card"><h3>Requirements fit</h3><b>verdict: fixable — every requirement maps</b>
+<ol class="tight">
+<li>payout could pick an account with no physical funds → per-account balance now required too</li>
+<li>mismatch_review dead-ended → per-kind resolution actions + RBAC</li>
+<li>fetchBalance was never called → snapshots + drift check in sync</li>
+<li>late claims discarded the UTR → accepted into review</li>
+<li>new open questions: funding model, resolver role, reversal + wrong-money policy</li>
+</ol></div>
+<div class="card"><h3>Data model</h3><b>verdict: fixable — fix before M1 migrations</b>
+<ol class="tight">
+<li>no DB backstop for one-credit-one-order → UNIQUE constraints added</li>
+<li>indexes didn't match the queries → usage + sweeper indexes added</li>
+<li>webhook secrets had no home → webhook_endpoints + UNIQUE(event, endpoint)</li>
+<li>ENUMs → VARCHAR + CHECK; providers lookup table</li>
+<li>added: account_balance_snapshots, api_keys, admin_users, retention rules</li>
+</ol></div>
+</div>
+<div class="card"><b>Every CRITICAL from all four is resolved in PLAN.md v2</b><p>Full record: PLAN.md §19. Annotate the plan in Plannotator — your feedback lands in my session.</p></div>
+</section>
+
+<footer>Full detail lives in PLAN.md (same folder) — this page is the picture. v2 — reviewed.</footer>
+</div>
+
+<script>
+function show(id){
+  var tabs=document.querySelectorAll('.tab');
+  for(var i=0;i<tabs.length;i++){tabs[i].classList.toggle('on',tabs[i].id==='t-'+id);}
+  var btns=document.querySelectorAll('.tabbtn');
+  for(var j=0;j<btns.length;j++){btns[j].classList.toggle('on',btns[j].getAttribute('data-t')===id);}
+}
+var btns=document.querySelectorAll('.tabbtn');
+for(var k=0;k<btns.length;k++){btns[k].addEventListener('click',function(){show(this.getAttribute('data-t'));});}
+show('overview');
+</script>
+</body>
+</html>

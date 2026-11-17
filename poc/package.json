@@ -1,0 +1,15 @@
+{
+  "name": "payment-orchestrator",
+  "version": "0.1.0",
+  "description": "Minimal payment orchestrator: guarded state machines, transactional outbox, double-entry ledger, hold-first payouts. Bun + SQLite, zero npm deps. Multi-process: stateless api xN, workers xN, simulated bank.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "bun apps/demo.ts",
+    "test": "bun test",
+    "bank": "bun apps/simbank.ts",
+    "api": "bun apps/api.ts",
+    "worker": "bun apps/worker.ts",
+    "e2e": "bun e2e/scale.ts"
+  }
+}

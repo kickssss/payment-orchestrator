@@ -1,0 +1,14 @@
+# runtime artifacts
+run/
+*.db
+*.db-wal
+*.db-shm
+
+# scratch
+.probe-tmp/
+
+# local env (bun auto-loads .env)
+.env
+
+# deps (none today - the project is zero-dependency)
+node_modules/
